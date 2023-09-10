@@ -1,6 +1,8 @@
 const express = require("express");
 const multer = require("multer");
-const uploads = multer({ dest: "./uploads" });
+// const uploads = multer({ dest: "./uploads" });
+const storage = multer.memoryStorage();
+const uploads = multer({ storage });
 const cors = require("cors");
 const pdf = require("pdf-parse");
 const xlsx = require("xlsx");
@@ -12,8 +14,7 @@ app.use(cors());
 app.get("/", (req, res) => {
   res.send("hello");
 });
-const pdfreader = async (path, keyword) => {
-  const buffer = fs.readFileSync(path);
+const pdfreader = async (buffer, keyword) => {
   const data = await pdf(buffer);
   const Sarray = data.text.split("\n");
 
@@ -25,8 +26,7 @@ const pdfreader = async (path, keyword) => {
   return pdfsentence;
 };
 
-const excelreader = async (path, keyword) => {
-  const buffer = fs.readFileSync(path);
+const excelreader = async (buffer, keyword) => {
   const workbook = xlsx.read(buffer, { type: "buffer" });
 
   // Assuming we want to read the first sheet
@@ -49,8 +49,7 @@ const excelreader = async (path, keyword) => {
   return keywordMatches;
 };
 
-const docxreader = async (path, keyword) => {
-  const buffer = fs.readFileSync(path);
+const docxreader = async (buffer, keyword) => {
   const result = await mammoth.extractRawText({ buffer });
 
   const text = result.value; // Extracted text from DOCX
@@ -67,8 +66,9 @@ const filefilter = async (files, keywords) => {
   const response = [];
 
   for (const file of files) {
+    console.log("file", file);
     if (file.mimetype === "application/pdf") {
-      const data = await pdfreader(file.path, keywords);
+      const data = await pdfreader(file.buffer, keywords);
       if (data.length > 0) {
         const ob = {
           filename: file.originalname,
@@ -81,7 +81,7 @@ const filefilter = async (files, keywords) => {
       file.mimetype ===
       "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
     ) {
-      const data = await excelreader(file.path, keywords);
+      const data = await excelreader(file.buffer, keywords);
       if (data.length > 0) {
         const ob = {
           filename: file.originalname,
@@ -94,7 +94,7 @@ const filefilter = async (files, keywords) => {
       file.mimetype ===
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document"
     ) {
-      const data = await docxreader(file.path, keywords);
+      const data = await docxreader(file.buffer, keywords);
       if (data.length > 0) {
         const ob = {
           filename: file.originalname,
