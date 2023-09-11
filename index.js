@@ -19,9 +19,7 @@ const pdfreader = async (buffer, keyword) => {
   const Sarray = data.text.split("\n");
 
   const pdfsentence = Sarray.filter((sentence) => {
-    const Lsentence = sentence.toLowerCase();
-    const Lkeyword = keyword.toLowerCase();
-    return Lsentence.includes(Lkeyword);
+    return keyword.some((keyword) => sentence.includes(keyword));
   });
   return pdfsentence;
 };
@@ -40,8 +38,8 @@ const excelreader = async (buffer, keyword) => {
 
   for (const cellAddress in worksheet) {
     if (worksheet[cellAddress].t === "s") {
-      const cellValue = worksheet[cellAddress].v.toLowerCase();
-      if (cellValue.includes(keyword.toLowerCase())) {
+      const cellValue = worksheet[cellAddress].v;
+      if (keyword.some((keyword) => cellValue.includes(keyword))) {
         keywordMatches.push(cellValue);
       }
     }
@@ -56,7 +54,7 @@ const docxreader = async (buffer, keyword) => {
   const Atexts = text.split("\n");
 
   const data = Atexts.filter((sentence) => {
-    return sentence.toLowerCase().includes(keyword.toLowerCase());
+    return keyword.some((keyword) => sentence.includes(keyword));
   });
 
   return data;
@@ -111,9 +109,10 @@ const filefilter = async (files, keywords) => {
 app.post("/uploads", uploads.array("files", 3), async (req, res) => {
   const files = req.files;
   const { keywords } = req.body;
+  const keywordsArray = keywords.split(",");
 
   try {
-    const response = await filefilter(files, keywords);
+    const response = await filefilter(files, keywordsArray);
     console.log("response", response);
     res.json(response);
   } catch (error) {
